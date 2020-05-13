@@ -1,6 +1,6 @@
-# gevent-tutorial-chinese
+# Gevent 中文入门教程
 
-### Core 核心
+# Core 核心
 
 ## Greenlets
 
