@@ -228,3 +228,69 @@ True
 与并发有关的长期问题称为竞争条件。简而言之，当两个并发线程/进程依赖于某些共享资源但还试图修改该值时，就会发生竞争状态。这将导致资源的值变得依赖于执行顺序。这是一个问题，一般来说，应该尽量避免竞态条件，因为它们会导致全局的不确定程序行为。
 
 最好的方法是在任何时候都避免所有全局状态。全局状态和导入时间的副作用总是会回来咬你一口
+
+### 生成 Greenlets
+
+gevent提供了一些关于Greenlet初始化的包装器。一些最常见的模式是：
+
+```Python
+import gevent
+from gevent import Greenlet
+
+def foo(message, n):
+    """
+    Each thread will be passed the message, and n arguments
+    in its initialization.
+    """
+    gevent.sleep(n)
+    print(message)
+
+# Initialize a new Greenlet instance running the named function
+# foo
+thread1 = Greenlet.spawn(foo, "Hello", 1)
+
+# Wrapper for creating and running a new Greenlet from the named
+# function foo, with the passed arguments
+thread2 = gevent.spawn(foo, "I live!", 2)
+
+# Lambda expressions
+thread3 = gevent.spawn(lambda x: (x+1), 2)
+
+threads = [thread1, thread2, thread3]
+
+# Block until all threads complete.
+gevent.joinall(threads)
+```
+
+```
+Hello
+I live!
+```
+
+除了使用基本的Greenlet类，您还可以子类化 Greenlet 类并覆盖 _run 方法。
+```Python
+
+
+```
+import gevent
+from gevent import Greenlet
+
+class MyGreenlet(Greenlet):
+
+    def __init__(self, message, n):
+        Greenlet.__init__(self)
+        self.message = message
+        self.n = n
+
+    def _run(self):
+        print(self.message)
+        gevent.sleep(self.n)
+
+g = MyGreenlet("Hi there!", 3)
+g.start()
+g.join()
+```
+
+```
+Hi there!
+```
