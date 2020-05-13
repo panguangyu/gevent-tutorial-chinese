@@ -181,3 +181,44 @@ synchronous()
 print('Asynchronous:')
 asynchronous()
 ```
+
+### 确定性
+
+如前所述，greenlet 是确定的。给定相同的 greenlet 配置和相同的输入集，它们总是产生相同的输出。例如，让我们将一个任务分散到一个多进程（multiprocessing）池中，并将其结果与一个gevent池的结果进行比较。
+
+```Python
+import time
+
+def echo(i):
+    time.sleep(0.001)
+    return i
+
+# Non Deterministic Process Pool
+
+from multiprocessing.pool import Pool
+
+p = Pool(10)
+run1 = [a for a in p.imap_unordered(echo, xrange(10))]
+run2 = [a for a in p.imap_unordered(echo, xrange(10))]
+run3 = [a for a in p.imap_unordered(echo, xrange(10))]
+run4 = [a for a in p.imap_unordered(echo, xrange(10))]
+
+print(run1 == run2 == run3 == run4)
+
+# Deterministic Gevent Pool
+
+from gevent.pool import Pool
+
+p = Pool(10)
+run1 = [a for a in p.imap_unordered(echo, xrange(10))]
+run2 = [a for a in p.imap_unordered(echo, xrange(10))]
+run3 = [a for a in p.imap_unordered(echo, xrange(10))]
+run4 = [a for a in p.imap_unordered(echo, xrange(10))]
+
+print(run1 == run2 == run3 == run4)
+```
+
+```
+False
+True
+```
