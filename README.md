@@ -41,3 +41,46 @@ Explicit context to bar
 Explicit context switch to foo again
 Implicit context switch back to bar
 ```
+
+当我们将 gevent 用于网络和 IO 绑定函数时，它的真正威力就来了，这些函数可以协同调度。Gevent 负责处理所有细节，以确保网络库尽可能隐式地让步出它们的 greenlet 上下文。我再怎么强调这是一个多么有力的成语也不为过。但也许可以举个例子来说明。
+
+在这种情况下，select() 函数通常是一个阻塞调用，它轮询各种文件描述符。
+
+```Python
+import time
+import gevent
+from gevent import select
+
+start = time.time()
+tic = lambda: 'at %1.1f seconds' % (time.time() - start)
+
+def gr1():
+    # Busy waits for a second, but we don't want to stick around...
+    print('Started Polling: %s' % tic())
+    select.select([], [], [], 2)
+    print('Ended Polling: %s' % tic())
+
+def gr2():
+    # Busy waits for a second, but we don't want to stick around...
+    print('Started Polling: %s' % tic())
+    select.select([], [], [], 2)
+    print('Ended Polling: %s' % tic())
+
+def gr3():
+    print("Hey lets do some stuff while the greenlets poll, %s" % tic())
+    gevent.sleep(1)
+
+gevent.joinall([
+    gevent.spawn(gr1),
+    gevent.spawn(gr2),
+    gevent.spawn(gr3),
+])
+```
+
+```
+Started Polling: at 0.0 seconds
+Started Polling: at 0.0 seconds
+Hey lets do some stuff while the greenlets poll, at 0.0 seconds
+Ended Polling: at 2.0 seconds
+Ended Polling: at 2.0 seconds
+```
