@@ -150,6 +150,7 @@ Task 3 done
 ```Python
 import gevent.monkey
 gevent.monkey.patch_socket()
+# 把内置的阻塞的 socket替换成非阻塞的socket
 
 import gevent
 import urllib2
