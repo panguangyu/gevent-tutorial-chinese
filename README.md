@@ -1,8 +1,8 @@
 # Gevent 中文入门教程
 
-# Core 核心
+## Core 核心
 
-## Greenlets
+### Greenlets
 
 gevent中使用的主要模式是Greenlet，这是作为C扩展模块提供给Python的一个轻量级协同程序。所有greenlet都在主程序的OS进程中运行，但它们是协同调度的。
 
