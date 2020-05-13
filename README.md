@@ -138,3 +138,45 @@ Task 9 done
 Task 0 done
 Task 3 done
 ```
+
+在同步情况下，所有任务都是按顺序运行的，这会导致在执行每个任务时主程序阻塞(即暂停主程序的执行)。
+
+程序的重要部分是 gevent.spawn，它将给定的函数封装在一个 Greenlet 线程中。初始化的 greenlet 列表存储在传递给 gevent 的数组线程中。gevent.joinall 函数，它会阻塞当前程序，来运行所有给定的 greenlet。只有当所有 greenlet 终止时，执行才会继续进行。
+
+需要注意的是，异步情况下的执行顺序本质上是随机的，异步情况下的总执行时间比同步情况下少得多。实际上，同步的例子完成的最大时间是每个任务停顿0.002秒，导致整个队列停顿0.02秒。在异步情况下，最大运行时间大约为0.002秒，因为没有一个任务会阻塞其他任务的执行。
+
+在更常见的用例中，异步地从服务器获取数据，fetch() 的运行时在请求之间会有所不同，这取决于请求时远程服务器上的负载。
+
+```Python
+import gevent.monkey
+gevent.monkey.patch_socket()
+
+import gevent
+import urllib2
+import simplejson as json
+
+def fetch(pid):
+    response = urllib2.urlopen('http://json-time.appspot.com/time.json')
+    result = response.read()
+    json_result = json.loads(result)
+    datetime = json_result['datetime']
+
+    print('Process %s: %s' % (pid, datetime))
+    return json_result['datetime']
+
+def synchronous():
+    for i in range(1,10):
+        fetch(i)
+
+def asynchronous():
+    threads = []
+    for i in range(1,10):
+        threads.append(gevent.spawn(fetch, i))
+    gevent.joinall(threads)
+
+print('Synchronous:')
+synchronous()
+
+print('Asynchronous:')
+asynchronous()
+```
