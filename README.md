@@ -35,9 +35,9 @@ gevent.joinall([
 ])
 ```
 
-`
+```
 Running in foo
 Explicit context to bar
 Explicit context switch to foo again
 Implicit context switch back to bar
-`  
+```
