@@ -8,4 +8,4 @@ gevent中使用的主要模式是Greenlet，这是作为C扩展模块提供给Py
 
 在任何给定的时间内，只有一个greenlet在运行。
 
-这不同于由 multiprocessing 或 threading 库提供的任何真正的并行结构，这些库可以自旋进程和POSIX线程，它们由操作系统调度，并且真正并行的。
+这不同于由 multiprocessing 或 threading 库提供的并行结构，它们这些库可以自旋进程和POSIX线程，由操作系统调度，并且真正并行的。
