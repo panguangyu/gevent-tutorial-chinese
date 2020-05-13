@@ -268,10 +268,8 @@ I live!
 ```
 
 除了使用基本的Greenlet类，您还可以子类化 Greenlet 类并覆盖 _run 方法。
+
 ```Python
-
-
-```
 import gevent
 from gevent import Greenlet
 
@@ -294,3 +292,5 @@ g.join()
 ```
 Hi there!
 ```
+
+翻译持续更新中 ...
