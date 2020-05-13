@@ -86,3 +86,55 @@ Hey lets do some stuff while the greenlets poll, at 0.0 seconds
 Ended Polling: at 2.0 seconds
 Ended Polling: at 2.0 seconds
 ```
+
+另一个比较综合的例子定义了一个不确定的任务函数 (它的输出不能保证对相同的输入给出相同的结果) 。在这种情况下，运行该函数的副作用是任务暂停执行的时间是随机的。
+
+```Python
+import gevent
+import random
+
+def task(pid):
+    """
+    Some non-deterministic task
+    """
+    gevent.sleep(random.randint(0,2)*0.001)
+    print('Task %s done' % pid)
+
+def synchronous():
+    for i in range(1,10):
+        task(i)
+
+def asynchronous():
+    threads = [gevent.spawn(task, i) for i in xrange(10)]
+    gevent.joinall(threads)
+
+print('Synchronous:')
+synchronous()
+
+print('Asynchronous:')
+asynchronous()
+```
+
+```
+Synchronous:
+Task 1 done
+Task 2 done
+Task 3 done
+Task 4 done
+Task 5 done
+Task 6 done
+Task 7 done
+Task 8 done
+Task 9 done
+Asynchronous:
+Task 1 done
+Task 5 done
+Task 6 done
+Task 2 done
+Task 4 done
+Task 7 done
+Task 8 done
+Task 9 done
+Task 0 done
+Task 3 done
+```
