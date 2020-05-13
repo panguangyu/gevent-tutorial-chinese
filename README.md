@@ -210,10 +210,10 @@ print(run1 == run2 == run3 == run4)
 from gevent.pool import Pool
 
 p = Pool(10)
-run1 = [a for a in p.imap_unordered(echo, xrange(10))]
-run2 = [a for a in p.imap_unordered(echo, xrange(10))]
-run3 = [a for a in p.imap_unordered(echo, xrange(10))]
-run4 = [a for a in p.imap_unordered(echo, xrange(10))]
+run1 = [a for a in p.imap_unordered(echo, xrange(10))]      # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+run2 = [a for a in p.imap_unordered(echo, xrange(10))]      # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+run3 = [a for a in p.imap_unordered(echo, xrange(10))]      # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+run4 = [a for a in p.imap_unordered(echo, xrange(10))]      # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 print(run1 == run2 == run3 == run4)
 ```
