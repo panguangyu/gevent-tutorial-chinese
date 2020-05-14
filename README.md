@@ -419,8 +419,6 @@ with Timeout(time_to_wait, TooLong):
     gevent.sleep(10)
 ```
 
-In addition, gevent also provides timeout arguments for a variety of Greenlet and data stucture related calls. For example:
-
 此外，gevent 还为各种 Greenlet 和数据结构相关的调用提供超时参数。例如：
 
 ```Python
