@@ -1,6 +1,6 @@
 # Gevent 中文入门教程
 
-## Core 核心
+## 核心
 
 ### Greenlets
 
@@ -292,5 +292,76 @@ g.join()
 ```
 Hi there!
 ```
+
+### Greenlets 状态
+
+与代码的其他部分一样，greenlet可能以各种方式失败。greenlet可能无法抛出异常、无法停止或消耗太多系统资源。
+
+greenlet 的内部状态通常是一个与时间相关的参数。在greenlets上有许多标志，它们允许您监视线程的状态：
+
+started -- 布尔值，指示Greenlet是否已启动
+
+ready() -- 布尔值，指示Greenlet是否已停止
+
+successful() -- 布尔值，指示Greenlet是否已停止且没有抛出异常
+
+value -- Greenlet返回的值
+
+exception -- 异常，在greenlet中抛出的未捕获异常实例
+
+```Python
+import gevent
+
+def win():
+    return 'You win!'
+
+def fail():
+    raise Exception('You fail at failing.')
+
+winner = gevent.spawn(win)
+loser = gevent.spawn(fail)
+
+print(winner.started) # True
+print(loser.started)  # True
+
+# Exceptions raised in the Greenlet, stay inside the Greenlet.
+try:
+    gevent.joinall([winner, loser])
+except Exception as e:
+    print('This will never be reached')
+
+print(winner.value) # 'You win!'
+print(loser.value)  # None
+
+print(winner.ready()) # True
+print(loser.ready())  # True
+
+print(winner.successful()) # True
+print(loser.successful())  # False
+
+# The exception raised in fail, will not propagate outside the
+# greenlet. A stack trace will be printed to stdout but it
+# will not unwind the stack of the parent.
+
+print(loser.exception)
+
+# It is possible though to raise the exception again outside
+# raise loser.exception
+# or with
+# loser.get()
+```
+
+```
+True
+True
+You win!
+None
+True
+True
+True
+False
+You fail at failing.
+```
+
 
 翻译持续更新中 ...
