@@ -363,5 +363,104 @@ False
 You fail at failing.
 ```
 
+### 程序关闭
+
+当主程序接收到SIGQUIT时，无法生成（yield）的 greenlet 可能会使程序的执行时间比预期的更长。这将导致所谓的“僵尸进程”，需要从 Python 解释器外部杀死这些进程。
+
+一种常见的模式是监听主程序上的SIGQUIT事件并在退出前调用 gevent.shutdown 。
+
+```Python
+import gevent
+import signal
+
+def run_forever():
+    gevent.sleep(1000)
+
+if __name__ == '__main__':
+    gevent.signal(signal.SIGQUIT, gevent.kill)
+    thread = gevent.spawn(run_forever)
+    thread.join()
+```
+
+### 超时
+
+超时是对代码块或Greenlet的运行时的约束。
+
+```Python
+import gevent
+from gevent import Timeout
+
+seconds = 10
+
+timeout = Timeout(seconds)
+timeout.start()
+
+def wait():
+    gevent.sleep(10)
+
+try:
+    gevent.spawn(wait).join()
+except Timeout:
+    print('Could not complete')
+```
+
+在with语句中，它们还可以与上下文管理器一起使用。
+
+```Python
+import gevent
+from gevent import Timeout
+
+time_to_wait = 5 # seconds
+
+class TooLong(Exception):
+    pass
+
+with Timeout(time_to_wait, TooLong):
+    gevent.sleep(10)
+```
+
+In addition, gevent also provides timeout arguments for a variety of Greenlet and data stucture related calls. For example:
+
+此外，gevent 还为各种 Greenlet 和数据结构相关的调用提供超时参数。例如：
+
+```Python
+import gevent
+from gevent import Timeout
+
+def wait():
+    gevent.sleep(2)
+
+timer = Timeout(1).start()
+thread1 = gevent.spawn(wait)
+
+try:
+    thread1.join(timeout=timer)
+except Timeout:
+    print('Thread 1 timed out')
+
+# --
+
+timer = Timeout.start_new(1)
+thread2 = gevent.spawn(wait)
+
+try:
+    thread2.get(timeout=timer)
+except Timeout:
+    print('Thread 2 timed out')
+
+# --
+
+try:
+    gevent.with_timeout(1, wait)
+except Timeout:
+    print('Thread 3 timed out')
+```
+
+```
+Thread 1 timed out
+Thread 2 timed out
+Thread 3 timed out
+```
+
 
 翻译持续更新中 ...
