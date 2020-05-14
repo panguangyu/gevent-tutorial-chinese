@@ -460,5 +460,42 @@ Thread 2 timed out
 Thread 3 timed out
 ```
 
+### 猴子补丁
+
+我们来到了Gevent的黑暗角落。到目前为止，我一直避免提到monkey patching，以尝试和激发强大的协同模式，但是现在是讨论monkey patching的黑魔法的时候了。
+如果您注意到上面我们调用了命令 monkey.patch_socket()，这是一个纯粹用于修改标准库套接字库(socket)的副作用命令。
+
+```Python
+import socket
+print(socket.socket)
+
+print("After monkey patch")
+from gevent import monkey
+monkey.patch_socket()
+print(socket.socket)
+
+import select
+print(select.select)
+monkey.patch_select()
+print("After monkey patch")
+print(select.select)
+```
+
+```
+class 'socket.socket'
+After monkey patch
+class 'gevent.socket.socket'
+
+built-in function select
+After monkey patch
+function select at 0x1924de8
+```
+
+Python 允许在运行时修改大多数对象，包括模块、类甚至函数。这通常是一个令人震惊的坏主意，因为它创建了一个“隐式副作用”，如果出现问题，通常非常难以调试，然而在极端情况下，库需要改变Python本身的基本行为，可以使用monkey补丁。在这种情况下，gevent能够修补标准库中的大多数阻塞系统调用，包括 socket、ssl、threading 和 select 模块中的调用。
+
+例如，Redis-python 的绑定通常使用常规tcp socket与Redis-server实例通信。只需调用gevent.monkey.patch_all()，我们可以让redis绑定协同调度请求，并与gevent堆栈的其他部分一起工作。
+
+这让我们可以在不编写任何代码的情况下集成通常无法与gevent一起工作的库。（尽管猴子补丁仍然是邪恶的，但在这种情况下，它是“有用的邪恶”。）
+
 
 翻译持续更新中 ...
