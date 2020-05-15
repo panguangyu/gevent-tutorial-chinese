@@ -499,6 +499,8 @@ Python 允许在运行时修改大多数对象，包括模块、类甚至函数�
 
 ## 数据结构
 
+### 事件
+
 事件是greenlet之间异步通信的一种形式。
 
 ```Python
@@ -564,6 +566,139 @@ gevent.joinall([
     gevent.spawn(setter),
     gevent.spawn(waiter),
 ])
+```
+
+### 队列
+
+队列是按顺序排列的数据集，它们具有通常的 put / get 操作，但可以在Greenlets上安全操作的方式编写。
+
+例如，如果一个Greenlet从队列中获取一个项目(item)，则同一项目(item)不会被同时执行的另一个Greenlet获取。
+
+```Python
+import gevent
+from gevent.queue import Queue
+
+tasks = Queue()
+
+def worker(n):
+    while not tasks.empty():
+        task = tasks.get()
+        print('Worker %s got task %s' % (n, task))
+        gevent.sleep(0)
+
+    print('Quitting time!')
+
+def boss():
+    for i in xrange(1,25):
+        tasks.put_nowait(i)
+
+gevent.spawn(boss).join()
+
+gevent.joinall([
+    gevent.spawn(worker, 'steve'),
+    gevent.spawn(worker, 'john'),
+    gevent.spawn(worker, 'nancy'),
+])
+```
+
+```
+Worker steve got task 1
+Worker john got task 2
+Worker nancy got task 3
+Worker steve got task 4
+Worker john got task 5
+Worker nancy got task 6
+Worker steve got task 7
+Worker john got task 8
+Worker nancy got task 9
+Worker steve got task 10
+Worker john got task 11
+Worker nancy got task 12
+Worker steve got task 13
+Worker john got task 14
+Worker nancy got task 15
+Worker steve got task 16
+Worker john got task 17
+Worker nancy got task 18
+Worker steve got task 19
+Worker john got task 20
+Worker nancy got task 21
+Worker steve got task 22
+Worker john got task 23
+Worker nancy got task 24
+Quitting time!
+Quitting time!
+Quitting time!
+```
+
+根据需要，队列还可以在put或get上阻塞。
+
+每个put和get操作都有一个非阻塞的对应操作，put_nowait 和 get_nowait 不会阻塞。如果操作是不可能的，而会引发 gevent.queue.Empty 或 gevent.queue.Full
+
+在这个例子中，我们让boss同时向workers运行，并且对队列有一个限制，防止它包含三个以上的元素。这个限制意味着put操作将阻塞，直到队列上有空间为止。相反，如果队列上没有要获取的元素，get操作就会阻塞，它还会接受一个超时参数，如果在超时的时间范围内找不到工作(work)，则允许队列以异常 gevent.queue.Empty 中退出。
+
+```Python
+import gevent
+from gevent.queue import Queue, Empty
+
+tasks = Queue(maxsize=3)
+
+def worker(name):
+    try:
+        while True:
+            task = tasks.get(timeout=1) # decrements queue size by 1
+            print('Worker %s got task %s' % (name, task))
+            gevent.sleep(0)
+    except Empty:
+        print('Quitting time!')
+
+def boss():
+    """
+    Boss will wait to hand out work until a individual worker is
+    free since the maxsize of the task queue is 3.
+    """
+
+    for i in xrange(1,10):
+        tasks.put(i)
+    print('Assigned all work in iteration 1')
+
+    for i in xrange(10,20):
+        tasks.put(i)
+    print('Assigned all work in iteration 2')
+
+gevent.joinall([
+    gevent.spawn(boss),
+    gevent.spawn(worker, 'steve'),
+    gevent.spawn(worker, 'john'),
+    gevent.spawn(worker, 'bob'),
+])
+```
+
+```
+Worker steve got task 1
+Worker john got task 2
+Worker bob got task 3
+Worker steve got task 4
+Worker john got task 5
+Worker bob got task 6
+Assigned all work in iteration 1
+Worker steve got task 7
+Worker john got task 8
+Worker bob got task 9
+Worker steve got task 10
+Worker john got task 11
+Worker bob got task 12
+Worker steve got task 13
+Worker john got task 14
+Worker bob got task 15
+Worker steve got task 16
+Worker john got task 17
+Worker bob got task 18
+Assigned all work in iteration 2
+Worker steve got task 19
+Quitting time!
+Quitting time!
+Quitting time!
 ```
 
 翻译持续更新中 ...
