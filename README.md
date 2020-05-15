@@ -517,7 +517,7 @@ def setter():
     print('A: Hey wait for me, I have to do something')
     gevent.sleep(3)
     print("Ok, I'm done")
-    evt.set()
+    evt.set()   # 运行到evt.set()会将flag设置为True，然后另外两个被阻塞的waitter的evt.wait()方法在看到flag已经为True之后不再继续阻塞运行并且结束。
 
 
 def waiter():
