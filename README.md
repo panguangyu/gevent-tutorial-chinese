@@ -497,5 +497,73 @@ Python 允许在运行时修改大多数对象，包括模块、类甚至函数�
 
 这让我们可以在不编写任何代码的情况下集成通常无法与gevent一起工作的库。（尽管猴子补丁仍然是邪恶的，但在这种情况下，它是“有用的邪恶”。）
 
+## 数据结构
+
+事件是greenlet之间异步通信的一种形式。
+
+```Python
+import gevent
+from gevent.event import Event
+
+'''
+Illustrates the use of events
+'''
+
+
+evt = Event()
+
+def setter():
+    '''After 3 seconds, wake all threads waiting on the value of evt'''
+    print('A: Hey wait for me, I have to do something')
+    gevent.sleep(3)
+    print("Ok, I'm done")
+    evt.set()
+
+
+def waiter():
+    '''After 3 seconds the get call will unblock'''
+    print("I'll wait for you")
+    evt.wait()  # blocking
+    print("It's about time")
+
+def main():
+    gevent.joinall([
+        gevent.spawn(setter),
+        gevent.spawn(waiter),
+        gevent.spawn(waiter),
+        gevent.spawn(waiter),
+        gevent.spawn(waiter),
+        gevent.spawn(waiter)
+    ])
+
+if __name__ == '__main__': main()
+```
+
+事件对象的扩展是 AsyncResult，它允许您在唤醒调用时发送一个值。这有时被称为future或deferred，因为它有对 future 值的引用，可以在任意的时间设置该值。
+
+```Python
+import gevent
+from gevent.event import AsyncResult
+a = AsyncResult()
+
+def setter():
+    """
+    After 3 seconds set the result of a.
+    """
+    gevent.sleep(3)
+    a.set('Hello!')
+
+def waiter():
+    """
+    After 3 seconds the get call will unblock after the setter
+    puts a value into the AsyncResult.
+    """
+    print(a.get())
+
+gevent.joinall([
+    gevent.spawn(setter),
+    gevent.spawn(waiter),
+])
+```
 
 翻译持续更新中 ...
