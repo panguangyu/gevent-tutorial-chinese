@@ -633,9 +633,9 @@ Quitting time!
 
 根据需要，队列还可以在put或get上阻塞。
 
-每个put和get操作都有一个非阻塞的对应操作，put_nowait 和 get_nowait 不会阻塞。如果操作是不可能的，而会引发 gevent.queue.Empty 或 gevent.queue.Full
+每个put和get操作都有一个非阻塞的对应操作，put_nowait 和 get_nowait 不会阻塞。如果操作是不可能的，会引发 gevent.queue.Empty 或 gevent.queue.Full
 
-在这个例子中，我们让boss同时向workers运行，并且对队列有一个限制，防止它包含三个以上的元素。这个限制意味着put操作将阻塞，直到队列上有空间为止。相反，如果队列上没有要获取的元素，get操作就会阻塞，它还会接受一个超时参数，如果在超时的时间范围内找不到工作(work)，则允许队列以异常 gevent.queue.Empty 中退出。
+在这个例子中，我们让boss同时和workers运行，并且对队列有一个限制，防止它包含三个以上的元素。这个限制意味着put操作将阻塞，直到队列上有空间为止。相反，如果队列上没有要获取的元素，get操作就会阻塞，它还会接受一个超时参数，如果在超时的时间范围内找不到工作(work)，则允许队列以异常 gevent.queue.Empty 退出。
 
 ```Python
 import gevent
@@ -659,7 +659,7 @@ def boss():
     """
 
     for i in xrange(1,10):
-        tasks.put(i)
+        tasks.put(i)                            # 输入1，2，3，到4时，队列达到最大值，put方法阻塞，gevent 切换到下一个协程worker（steve）
     print('Assigned all work in iteration 1')
 
     for i in xrange(10,20):
@@ -699,6 +699,141 @@ Worker steve got task 19
 Quitting time!
 Quitting time!
 Quitting time!
+```
+
+### 分组和池
+
+组是运行中的greenlet的集合，这些greenlet作为组一起管理和调度。它还兼做并行调度程序，借鉴 Python multiprocessing 库。
+
+```Python
+import gevent
+from gevent.pool import Group
+
+def talk(msg):
+    for i in xrange(3):
+        print(msg)
+
+g1 = gevent.spawn(talk, 'bar')
+g2 = gevent.spawn(talk, 'foo')
+g3 = gevent.spawn(talk, 'fizz')
+
+group = Group()
+group.add(g1)
+group.add(g2)
+group.join()
+
+group.add(g3)
+group.join()
+```
+
+```
+bar
+bar
+bar
+foo
+foo
+foo
+fizz
+fizz
+fizz
+```
+
+这对于管理异步任务组非常有用。
+
+如上所述，Group还提供了一个API，用于将作业分派给分组的greenlet并以各种方式收集它们的结果。
+
+```Python
+import gevent
+from gevent import getcurrent
+from gevent.pool import Group
+
+group = Group()
+
+def hello_from(n):
+    print('Size of group %s' % len(group))
+    print('Hello from Greenlet %s' % id(getcurrent()))
+
+group.map(hello_from, xrange(3))
+
+
+def intensive(n):
+    gevent.sleep(3 - n)
+    return 'task', n
+
+print('Ordered')
+
+ogroup = Group()
+for i in ogroup.imap(intensive, xrange(3)):
+    print(i)
+
+print('Unordered')
+
+igroup = Group()
+for i in igroup.imap_unordered(intensive, xrange(3)):
+    print(i)
+```
+
+```
+Size of group 3
+Hello from Greenlet 4340152592
+Size of group 3
+Hello from Greenlet 4340928912
+Size of group 3
+Hello from Greenlet 4340928592
+Ordered
+('task', 0)
+('task', 1)
+('task', 2)
+Unordered
+('task', 2)
+('task', 1)
+('task', 0)
+```
+
+池是一种结构，用于处理需要限制并发的动态数量的greenlets。在需要并行执行许多网络或IO绑定任务的情况下，这通常是可取的。
+
+
+```Python
+import gevent
+from gevent.pool import Pool
+
+pool = Pool(2)
+
+def hello_from(n):
+    print('Size of pool %s' % len(pool))
+
+pool.map(hello_from, xrange(3))
+```
+
+```
+Size of pool 2
+Size of pool 2
+Size of pool 1
+```
+
+通常在构建gevent驱动的服务时，会将整个服务围绕一个池结构进行中心处理。一个例子可能是在各种套接字（socket）上轮询的类。
+
+```Python
+from gevent.pool import Pool
+
+class SocketPool(object):
+
+    def __init__(self):
+        self.pool = Pool(1000)
+        self.pool.start()
+
+    def listen(self, socket):
+        while True:
+            socket.recv()
+
+    def add_handler(self, socket):
+        if self.pool.full():
+            raise Exception("At maximum pool size")
+        else:
+            self.pool.spawn(self.listen, socket)
+
+    def shutdown(self):
+        self.pool.kill()
 ```
 
 翻译持续更新中 ...
