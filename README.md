@@ -714,16 +714,12 @@ def talk(msg):
         print(msg)
 
 g1 = gevent.spawn(talk, 'bar')
-g2 = gevent.spawn(talk, 'foo')
-g3 = gevent.spawn(talk, 'fizz')
+g2 = gevent.spawn(talk, 'foo')         
+g3 = gevent.spawn(talk, 'fizz')  
 
 group = Group()
-group.add(g1)
-group.add(g2)
-group.join()
-
-group.add(g3)
-group.join()
+group.add(g1)                           
+group.join()                      # 修改了官方的例子，这里join只会让当前线程等待g1，但g2和g3已经被启动，会被继续安排执行
 ```
 
 ```
